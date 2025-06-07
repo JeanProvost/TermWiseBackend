@@ -10,6 +10,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the application code
 COPY ./app /app
+COPY ./models /app/models
 
 # Expose the port the app runs on
 EXPOSE 8000
