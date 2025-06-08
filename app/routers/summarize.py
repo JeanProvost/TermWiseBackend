@@ -1,37 +1,28 @@
 from fastapi import APIRouter, HTTPException
-from app.schemas import SummarizeRequest, SummarizeResponse
-from app.core.ai_summarize import summarize_content
-from pydantic import BaseModel
+from ..schemas import SummarizationRequest, SummarizationResponse
+from ..core.ai import summarizer
 
 router = APIRouter(
     prefix="/summarize",
     tags=["Summarization"],
 )
 
-class SummarizationRequest(BaseModel):
-    text: str
-
-class SummarizationResponse(BaseModel):
-    summary: str
-
 @router.post("/", response_model=SummarizationResponse)
 def summarize_text(request: SummarizationRequest):
     """
-    Receives text and returns a placeholder summary.
-    This will be replaced with actual model inference.
+    Receives text, sends it for structured analysis,
+    and returns the result.
     """
-    # Placeholder logic
-    summary = f"This is a summary of the text: {request.text[:30]}..."
-    return {"summary": summary}
-
-@router.post("/summarize", response_model=SummarizeResponse)
-async def create_summary(request: SummarizeRequest):
     try:
-        summary = await summarize_content(request.content)
-        return {
-            "summary": summary,
-            "document_type": "DetectedType",
-            "truncated": False,
-        }
+        # Call the new function to get the structured dictionary
+        structured_summary = summarizer.get_structured_summary(request.text)
+        
+        # Pydantic will automatically validate the dictionary and format the response
+        return structured_summary
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        # Log the exception for debugging
+        print(f"An error occurred during summarization: {e}")
+        raise HTTPException(
+            status_code=500, 
+            detail="There was an error processing your request."
+        )

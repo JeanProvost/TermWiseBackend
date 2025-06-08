@@ -1,4 +1,8 @@
 fastapi
 uvicorn
-transformers
-torch
+pydantic-settings
+requests
+
+# AWS Serverless
+boto3
+mangum

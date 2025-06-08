@@ -1,11 +1,16 @@
 from pydantic import BaseModel
 
-class SummarizeRequest(BaseModel):
-    content: str
-    url: str | None = None
-    metadata: dict | None = None
+class SummarizationRequest(BaseModel):
+    """The request model for the summarization endpoint."""
+    text: str
 
-class SummarizeResponse(BaseModel):
+class SectionSummary(BaseModel):
+    """A model to hold the summary of a document section."""
+    section_title: str
     summary: str
+
+class SummarizationResponse(BaseModel):
+    """The structured response model for the summarization endpoint."""
     document_type: str
-    truncated: bool
+    key_terms: list[str]
+    sectional_summaries: list[SectionSummary]
