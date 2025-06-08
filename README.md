@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="./.github/assets/logo.png" alt="TermWise Logo" width="200"/>
+</div>
+
 # TermWise Backend
 
 This repository contains the backend API for the TermWise browser extension. It's a serverless API built with FastAPI, designed to receive legal documents, analyze them using a powerful language model, and return a structured, easy-to-understand summary.
