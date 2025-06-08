@@ -5,10 +5,10 @@ from ...config import settings
 # We are upgrading to a powerful instruction-following model
 API_URL = "https://api-inference.huggingface.co/models/mistralai/Mixtral-8x7B-Instruct-v0.1"
 
-def get_structured_summary(text: str) -> dict:
+def get_layman_summary(text: str) -> dict:
     """
-    Invokes a powerful instruction-following model on Hugging Face to generate a
-    structured analysis of the provided text.
+    Invokes an instruction-following model to generate a structured, 
+    easy-to-understand analysis of a document.
 
     Args:
         text: The input text to be analyzed.
@@ -22,17 +22,22 @@ def get_structured_summary(text: str) -> dict:
     if not settings.HUGGINGFACE_API_TOKEN:
         raise ValueError("HUGGINGFACE_API_TOKEN is not set in the configuration.")
 
-    # This prompt instructs the model to act as an analyst and return a specific JSON structure.
     prompt = f"""
-    As a legal document analyst, your task is to analyze the following document.
-    Please provide a response in a valid JSON format. The JSON object should have three keys:
-    1. "document_type": A string identifying the type of document (e.g., "Privacy Policy", "Terms of Service", "Legal Contract").
-    2. "key_terms": An array of strings, where each string is a significant keyword or phrase from the document.
-    3. "sectional_summaries": An array of objects, where each object has two keys:
-        - "section_title": A string containing a descriptive title for a document section.
-        - "summary": A string containing a concise summary of that section's content.
+    You are an expert legal analyst who specializes in explaining complex documents to a layperson.
+    Your task is to analyze the following document and provide a structured, easy-to-understand breakdown in a valid JSON format.
 
-    Analyze the following document and provide your response in the specified JSON format:
+    The JSON object must have the following four keys:
+    1. "document_type": A string identifying the type of document (e.g., "Privacy Policy", "Terms of Service").
+    2. "overall_summary": A string providing a brief, one-paragraph overview of the document's main purpose.
+    3. "key_terms": An array of objects. Each object must have two keys:
+        - "term": A string containing a significant keyword or phrase (e.g., "Personal Information").
+        - "definition": A string explaining what that term means in simple language.
+    4. "sectional_summaries": An array of objects. Each object must represent a distinct section of the document and have three keys:
+        - "section_title": A string with a descriptive title for that section.
+        - "detailed_summary": A string providing a comprehensive summary of the section's content.
+        - "simple_summary": A string that starts with "In simple terms:" and re-explains the section's meaning in plain, everyday language.
+
+    Please analyze the following document and generate the complete JSON object as described.
 
     ---
     DOCUMENT:
@@ -45,7 +50,7 @@ def get_structured_summary(text: str) -> dict:
     payload = {
         "inputs": prompt,
         "parameters": {
-            "max_new_tokens": 2048, # Increase token limit for complex JSON
+            "max_new_tokens": 2048,
             "return_full_text": False
         }
     }
@@ -56,13 +61,11 @@ def get_structured_summary(text: str) -> dict:
         
         result = response.json()
         
-        # The model's response is a string inside a JSON object, so we need to extract it.
         generated_text = result[0].get("generated_text")
         
         if not generated_text:
             raise ValueError("The model did not return any generated text.")
 
-        # The generated text itself should be a JSON string, so we parse it.
         structured_data = json.loads(generated_text)
         return structured_data
 

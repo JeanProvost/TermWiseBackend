@@ -10,12 +10,12 @@ router = APIRouter(
 @router.post("/", response_model=SummarizationResponse)
 def summarize_text(request: SummarizationRequest):
     """
-    Receives text, sends it for structured analysis,
-    and returns the result.
+    Receives text, sends it for detailed layman analysis,
+    and returns the structured result.
     """
     try:
         # Call the new function to get the structured dictionary
-        structured_summary = summarizer.get_structured_summary(request.text)
+        structured_summary = summarizer.get_layman_summary(request.text)
         
         # Pydantic will automatically validate the dictionary and format the response
         return structured_summary
