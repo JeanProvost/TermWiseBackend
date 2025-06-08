@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="./.github/assets/logo.png" alt="TermWise Logo" width="200"/>
+  <img src="./.github/assets/TermWise_Placeholder_Logo.png" alt="TermWise Logo" width="200"/>
 </div>
 
 # TermWise Backend
