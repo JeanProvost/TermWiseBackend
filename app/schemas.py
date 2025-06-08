@@ -14,7 +14,7 @@ class SectionSummary(BaseModel):
     """A model to hold the detailed summary of a single document section."""
     section_title: str
     detailed_summary: str
-    simple_summary: str
+    #simple_summary: str
 
 class SummarizationResponse(BaseModel):
     """The structured response model for the summarization endpoint."""
