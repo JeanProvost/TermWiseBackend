@@ -2,6 +2,10 @@ import requests
 import json
 from ...config import settings
 
+# Removed simple_summary for now 
+# - "simple_summary": A string that starts with "In simple terms:" and re-explains the section's meaning in plain, everyday language.
+
+
 # We are upgrading to a powerful instruction-following model
 API_URL = "https://api-inference.huggingface.co/models/mistralai/Mixtral-8x7B-Instruct-v0.1"
 
@@ -35,7 +39,7 @@ def get_layman_summary(text: str) -> dict:
     4. "sectional_summaries": An array of objects. Each object must represent a distinct section of the document and have three keys:
         - "section_title": A string with a descriptive title for that section.
         - "detailed_summary": A string providing a comprehensive summary of the section's content.
-        - "simple_summary": A string that starts with "In simple terms:" and re-explains the section's meaning in plain, everyday language.
+
 
     Please analyze the following document and generate the complete JSON object as described.
 
