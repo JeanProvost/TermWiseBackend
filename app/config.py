@@ -11,7 +11,11 @@ class Settings(BaseSettings):
     )
 
     AWS_REGION: str = "us-east-1"
-    BEDROCK_MODEL_ID: str = "deepseek-llm-r1-distill-llama-70b"
-    HUGGINGFACE_API_TOKEN: str = ""
+    
+    # Model configuration
+    MODEL_NAME: str = "google/gemma-2-9b-it"
+    USE_GPU: bool = True
+    MAX_INPUT_LENGTH: int = 3000
+    MAX_NEW_TOKENS: int = 2048
 
 settings = Settings()
