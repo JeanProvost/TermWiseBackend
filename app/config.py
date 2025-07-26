@@ -20,6 +20,6 @@ class Settings(BaseSettings):
 
     #Performance configuration
     QUANTIZE_MODEL: bool = True
-    USE_FLASH_ATTENTION_2: BOOL = True
+    USE_FLASH_ATTENTION_2: bool = True
 
 settings = Settings()
