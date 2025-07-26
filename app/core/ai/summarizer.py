@@ -3,6 +3,7 @@ import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from typing import Dict, Any
 from ...config import settings
+from transformers import BitsAndBytesConfig
 
 # Initialize the model and tokenizer globally to avoid reloading
 _model = None
@@ -22,10 +23,20 @@ def _get_model_and_tokenizer():
         # Set device_map based on GPU availability
         device_map = "auto" if settings.USE_GPU and torch.cuda.is_available() else "cpu"
         
+        quantization_config = None
+        if settings.QUANTIZE_MODEL:
+            # This configures the 4-bit quantization
+            quantization_config = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_quant_type="nf4",
+                bnb_4bit_compute_dtype=torch.bfloat16
+            )
+
         _model = AutoModelForCausalLM.from_pretrained(
             settings.MODEL_NAME,
             device_map=device_map,
             torch_dtype=torch.bfloat16 if settings.USE_GPU else torch.float32,
+            quantization_config=quantization_config,
         )
         
         device = "GPU" if settings.USE_GPU and torch.cuda.is_available() else "CPU"
