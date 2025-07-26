@@ -6,3 +6,8 @@ requests
 # AWS Serverless
 boto3
 mangum
+
+# Local model support
+transformers
+accelerate
+torch
