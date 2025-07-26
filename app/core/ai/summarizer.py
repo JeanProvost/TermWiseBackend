@@ -32,11 +32,24 @@ def _get_model_and_tokenizer():
                 bnb_4bit_compute_dtype=torch.bfloat16
             )
 
+        # Determine which attention implementation to use
+        # NOTE: Flash Attention 2 can be difficult to install on Windows.
+        # It's disabled by default here to ensure compatibility.
+        attn_implementation = "eager"
+        if settings.USE_FLASH_ATTENTION_2:
+            try:
+                # Check if flash-attn is available
+                import flash_attn
+                attn_implementation = "flash_attention_2"
+            except ImportError:
+                print("Flash Attention 2 not available. Falling back to eager attention.")
+
         _model = AutoModelForCausalLM.from_pretrained(
             settings.MODEL_NAME,
             device_map=device_map,
             torch_dtype=torch.bfloat16 if settings.USE_GPU else torch.float32,
             quantization_config=quantization_config,
+            attn_implementation=attn_implementation,
         )
         
         device = "GPU" if settings.USE_GPU and torch.cuda.is_available() else "CPU"

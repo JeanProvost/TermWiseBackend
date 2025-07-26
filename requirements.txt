@@ -11,3 +11,5 @@ mangum
 transformers
 accelerate
 torch
+bitsandbytes
+flash-attn
