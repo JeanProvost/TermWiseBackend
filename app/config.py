@@ -18,4 +18,8 @@ class Settings(BaseSettings):
     MAX_INPUT_LENGTH: int = 3000
     MAX_NEW_TOKENS: int = 2048
 
+    #Performance configuration
+    QUANTIZE_MODEL: bool = True
+    USE_FLASH_ATTENTION_2: BOOL = True
+
 settings = Settings()
