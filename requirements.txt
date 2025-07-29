@@ -13,3 +13,4 @@ accelerate
 torch
 bitsandbytes
 flash-attn
+protobuf
