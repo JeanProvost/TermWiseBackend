@@ -18,7 +18,13 @@ def _get_model_and_tokenizer():
     
     if _model is None or _tokenizer is None:
         print(f"Loading {settings.MODEL_NAME} model...")
-        _tokenizer = AutoTokenizer.from_pretrained(settings.MODEL_NAME)
+        # Try to use fast tokenizer to avoid sentencepiece dependency
+        try:
+            _tokenizer = AutoTokenizer.from_pretrained(settings.MODEL_NAME, use_fast=True)
+        except Exception as e:
+            print(f"Fast tokenizer failed: {e}")
+            # Fallback to slow tokenizer
+            _tokenizer = AutoTokenizer.from_pretrained(settings.MODEL_NAME, use_fast=False)
         
         # Set device_map based on GPU availability
         device_map = "auto" if settings.USE_GPU and torch.cuda.is_available() else "cpu"
@@ -77,8 +83,9 @@ def get_layman_summary(text: str) -> Dict[str, Any]:
     if len(text) > settings.MAX_INPUT_LENGTH:
         text = text[:settings.MAX_INPUT_LENGTH] + "..."
     
-    prompt = f"""You are an expert legal analyst who specializes in explaining complex documents to a layperson.
-Your task is to analyze the following document and provide a structured, easy-to-understand breakdown in a valid JSON format.
+    # Format the prompt for Phi-3 using chat template
+    system_prompt = """You are an expert legal analyst who specializes in explaining complex documents to a layperson.
+Your task is to analyze documents and provide a structured, easy-to-understand breakdown in a valid JSON format.
 
 The JSON object must have the following four keys:
 1. "document_type": A string identifying the type of document (e.g., "Privacy Policy", "Terms of Service").
@@ -90,22 +97,37 @@ The JSON object must have the following four keys:
     - "section_title": A string with a descriptive title for that section.
     - "detailed_summary": A string providing a comprehensive summary of the section's content.
 
-Please analyze the following document and generate ONLY the JSON object as described, with no additional text before or after.
+Generate ONLY the JSON object as described, with no additional text before or after."""
 
----
-DOCUMENT:
+    user_prompt = f"""Please analyze the following document:
+
 {text}
----
 
 JSON Response:"""
 
+    # Use Mistral's chat template format
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt}
+    ]
+
     try:
-        # Tokenize the input
-        input_ids = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=4096)
+        # Tokenize using the chat template
+        input_ids = tokenizer.apply_chat_template(
+            messages, 
+            return_tensors="pt", 
+            add_generation_prompt=True,
+            truncation=True,
+            max_length=4096
+        )
         
         # Move to GPU if available
         device = next(model.parameters()).device
-        input_ids = {k: v.to(device) for k, v in input_ids.items()}
+        if isinstance(input_ids, dict):
+            input_ids = {k: v.to(device) for k, v in input_ids.items()}
+        else:
+            # For chat template, input_ids is a tensor
+            input_ids = {"input_ids": input_ids.to(device)}
         
         # Generate response
         with torch.no_grad():
