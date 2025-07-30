@@ -84,20 +84,29 @@ def get_layman_summary(text: str) -> Dict[str, Any]:
         text = text[:settings.MAX_INPUT_LENGTH] + "..."
     
     # Format the prompt for Phi-3 using chat template
-    system_prompt = """You are an expert legal analyst who specializes in explaining complex documents to a layperson.
-Your task is to analyze documents and provide a structured, easy-to-understand breakdown in a valid JSON format.
+    system_prompt = """You are a specialized API that converts legal documents into structured JSON.
+Your task is to analyze the document provided by the user and respond with ONLY a single, valid JSON object.
+Do not include any introductory text, explanations, or markdown formatting like ```json. Your entire response must be the raw JSON object.
 
-The JSON object must have the following four keys:
-1. "document_type": A string identifying the type of document (e.g., "Privacy Policy", "Terms of Service").
-2. "overall_summary": A string providing a brief, one-paragraph overview of the document's main purpose.
-3. "key_terms": An array of objects. Each object must have two keys:
-    - "term": A string containing a significant keyword or phrase (e.g., "Personal Information").
-    - "definition": A string explaining what that term means in simple language.
-4. "sectional_summaries": An array of objects. Each object must represent a distinct section of the document and have three keys:
-    - "section_title": A string with a descriptive title for that section.
-    - "detailed_summary": A string providing a comprehensive summary of the section's content.
+The JSON object must strictly follow this structure:
+{
+  "document_type": "string",
+  "overall_summary": "string",
+  "key_terms": [
+    {
+      "term": "string",
+      "definition": "string"
+    }
+  ],
+  "sectional_summaries": [
+    {
+      "section_title": "string",
+      "detailed_summary": "string"
+    }
+  ]
+}
 
-Generate ONLY the JSON object as described, with no additional text before or after."""
+Pay close attention to JSON syntax, ensuring all commas and brackets are correct."""
 
     user_prompt = f"""Please analyze the following document:
 
