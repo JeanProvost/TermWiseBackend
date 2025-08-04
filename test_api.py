@@ -19,4 +19,4 @@ response = requests.post(url, json=data)
 
 # Print results
 print(f"Status Code: {response.status_code}")
-print(f"Response: {json.dumps(response.json(), indent=2)}") 
+print(f"Response: {json.dumps(response.json(), indent=2)}")

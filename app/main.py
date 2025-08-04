@@ -15,7 +15,8 @@ origins = [
     "http://localhost",
     "http://localhost:3000",
     "http://localhost:5173",
-    "http://localhost:8080"
+    "http://localhost:8080",
+    "chrome-extension://*"
 ]
 
 app.add_middleware(
@@ -32,7 +33,7 @@ app.include_router(classify.router, prefix="/api")
 
 @app.get("/", tags=["Root"])
 def read_root():
-    """A simple endpoint to check if the API is running."""
+    """Healthcheck"""
     return {"message": "Welcome to the TermWise API!"}
 
 # Create the Lambda handler
