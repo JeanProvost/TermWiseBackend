@@ -19,8 +19,8 @@ class Settings(BaseSettings):
     MAX_NEW_TOKENS: int = 2048
 
     #Performance configuration
-    QUANTIZE_MODEL: bool = True  # 4-bit quantization for RTX 4060 8GB
+    QUANTIZE_MODEL: bool = True
     USE_FLASH_ATTENTION_2: bool = True
-    USE_MISTRAL_NATIVE: bool = False  # Use HF transformers instead of mistral_inference
+    USE_MISTRAL_NATIVE: bool = False
 
 settings = Settings()
