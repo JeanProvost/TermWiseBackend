@@ -1,71 +1,39 @@
 import json
 import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM
+from transformers import pipeline
 from typing import Dict, Any
 from ...config import settings
-from transformers import BitsAndBytesConfig
+# from transformers import BitsAndBytesConfig  # Commented out for GPT model
 
-# Initialize the model and tokenizer globally to avoid reloading
-_model = None
-_tokenizer = None
+# Initialize the pipeline globally to avoid reloading
+_pipeline = None
 
-def _get_model_and_tokenizer():
+def _get_pipeline():
     """
-    Lazy-load the model and tokenizer to avoid loading them at import time.
-    This ensures they are only loaded when first needed.
+    Lazy-load the pipeline to avoid loading it at import time.
+    This ensures it's only loaded when first needed.
     """
-    global _model, _tokenizer
+    global _pipeline
     
-    if _model is None or _tokenizer is None:
+    if _pipeline is None:
         print(f"Loading {settings.MODEL_NAME} model...")
-        # Try to use fast tokenizer to avoid sentencepiece dependency
-        try:
-            _tokenizer = AutoTokenizer.from_pretrained(settings.MODEL_NAME, use_fast=True)
-        except Exception as e:
-            print(f"Fast tokenizer failed: {e}")
-            # Fallback to slow tokenizer
-            _tokenizer = AutoTokenizer.from_pretrained(settings.MODEL_NAME, use_fast=False)
         
-        # Set device_map based on GPU availability
-        device_map = "auto" if settings.USE_GPU and torch.cuda.is_available() else "cpu"
-        
-        quantization_config = None
-        if settings.QUANTIZE_MODEL:
-            # This configures the 4-bit quantization
-            quantization_config = BitsAndBytesConfig(
-                load_in_4bit=True,
-                bnb_4bit_quant_type="nf4",
-                bnb_4bit_compute_dtype=torch.bfloat16
-            )
-
-        # Determine which attention implementation to use
-        # NOTE: Flash Attention 2 can be difficult to install on Windows.
-        # It's disabled by default here to ensure compatibility.
-        attn_implementation = "eager"
-        if settings.USE_FLASH_ATTENTION_2:
-            try:
-                # Check if flash-attn is available
-                import flash_attn
-                attn_implementation = "flash_attention_2"
-            except ImportError:
-                print("Flash Attention 2 not available. Falling back to eager attention.")
-
-        _model = AutoModelForCausalLM.from_pretrained(
-            settings.MODEL_NAME,
-            device_map=device_map,
-            torch_dtype=torch.bfloat16 if settings.USE_GPU else torch.float32,
-            quantization_config=quantization_config,
-            attn_implementation=attn_implementation,
+        # Create pipeline using the GPT model configuration
+        _pipeline = pipeline(
+            "text-generation",
+            model=settings.MODEL_NAME,
+            torch_dtype="auto",
+            device_map="auto" if settings.USE_GPU and torch.cuda.is_available() else None,
         )
         
         device = "GPU" if settings.USE_GPU and torch.cuda.is_available() else "CPU"
         print(f"Model loaded successfully on {device}!")
     
-    return _model, _tokenizer
+    return _pipeline
 
 def get_layman_summary(text: str) -> Dict[str, Any]:
     """
-    Uses the local Gemma-2-9b-it model to generate a structured, 
+    Uses the openai/gpt-oss-120b model to generate a structured, 
     easy-to-understand analysis of a document.
 
     Args:
@@ -77,80 +45,54 @@ def get_layman_summary(text: str) -> Dict[str, Any]:
     Raises:
         Exception: If the model generation fails or the response is not valid JSON.
     """
-    model, tokenizer = _get_model_and_tokenizer()
+    pipe = _get_pipeline()
     
     # Truncate text if it's too long to avoid exceeding context window
     if len(text) > settings.MAX_INPUT_LENGTH:
         text = text[:settings.MAX_INPUT_LENGTH] + "..."
     
-    # Format the prompt for Phi-3 using chat template
-    system_prompt = """You are a specialized API that converts legal documents into structured JSON.
-Your task is to analyze the document provided by the user and respond with ONLY a single, valid JSON object.
+    # Format the prompt for GPT model
+    user_prompt = f"""You are a specialized API that converts legal documents into structured JSON.
+Analyze the following document and respond with ONLY a single, valid JSON object.
 Do not include any introductory text, explanations, or markdown formatting like ```json. Your entire response must be the raw JSON object.
 
 The JSON object must strictly follow this structure:
-{
+{{
   "document_type": "string",
   "overall_summary": "string",
   "key_terms": [
-    {
+    {{
       "term": "string",
       "definition": "string"
-    }
+    }}
   ],
   "sectional_summaries": [
-    {
+    {{
       "section_title": "string",
       "detailed_summary": "string"
-    }
+    }}
   ]
-}
+}}
 
-Pay close attention to JSON syntax, ensuring all commas and brackets are correct."""
-
-    user_prompt = f"""Please analyze the following document:
-
+Document to analyze:
 {text}
 
 JSON Response:"""
 
-    # Use Mistral's chat template format
+    # Use the messages format for the pipeline
     messages = [
-        {"role": "system", "content": system_prompt},
         {"role": "user", "content": user_prompt}
     ]
 
     try:
-        # Tokenize using the chat template
-        input_ids = tokenizer.apply_chat_template(
-            messages, 
-            return_tensors="pt", 
-            add_generation_prompt=True,
-            truncation=True,
-            max_length=4096
+        # Generate response using pipeline
+        outputs = pipe(
+            messages,
+            max_new_tokens=settings.MAX_NEW_TOKENS,
         )
         
-        # Move to GPU if available
-        device = next(model.parameters()).device
-        if isinstance(input_ids, dict):
-            input_ids = {k: v.to(device) for k, v in input_ids.items()}
-        else:
-            # For chat template, input_ids is a tensor
-            input_ids = {"input_ids": input_ids.to(device)}
-        
-        # Generate response
-        with torch.no_grad():
-            outputs = model.generate(
-                **input_ids,
-                max_new_tokens=settings.MAX_NEW_TOKENS,
-                temperature=0.7,
-                do_sample=True,
-                top_p=0.95,
-                pad_token_id=tokenizer.eos_token_id
-            )
-        
-        # Decode the output, skipping the input prompt
-        generated_text = tokenizer.decode(outputs[0][input_ids['input_ids'].shape[1]:], skip_special_tokens=True)
+        # Extract the generated text from pipeline output
+        generated_text = outputs[0]["generated_text"][-1]["content"]
         
         # Try to extract JSON from the response
         # Sometimes models add extra text, so we'll try to find the JSON part
