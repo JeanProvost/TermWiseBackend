@@ -14,3 +14,6 @@ torch
 bitsandbytes
 flash-attn
 protobuf
+mistral-inference
+mistral-common
+sentencepiece  # Needed for Mistral/Llama tokenizer fast variant

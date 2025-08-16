@@ -8,6 +8,7 @@ router = APIRouter(
 )
 
 @router.post("/", response_model=SummarizationResponse)
+@router.post("", response_model=SummarizationResponse)  # allow both /summarize and /summarize/
 def summarize_text(request: SummarizationRequest):
     """
     Receives text, sends it for detailed layman analysis,
