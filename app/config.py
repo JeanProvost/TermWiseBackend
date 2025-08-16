@@ -13,10 +13,18 @@ class Settings(BaseSettings):
     AWS_REGION: str = "us-east-1"
     
     # Model configuration
-    MODEL_NAME: str = "openai/gpt-oss-120b"
+    MODEL_NAME: str = "microsoft/DialoGPT-large"  # More reliable alternative to gpt-oss-20b
+    PREMIUM_MODEL: str = "openai/gpt-oss-20b"  # Original model to try if you have enough resources
+    FALLBACK_MODEL: str = "gpt2-medium"  # Lightweight fallback
     USE_GPU: bool = True
     MAX_INPUT_LENGTH: int = 3000
-    MAX_NEW_TOKENS: int = 256  # Updated to match example
+    MAX_NEW_TOKENS: int = 512  # Increased for better legal summaries
+    CONTEXT_WINDOW: int = 8192  # Approximate context window for safety budgeting
+    # Model loading options
+    TRUST_REMOTE_CODE: bool = True
+    TORCH_DTYPE: str = "float16"  # Explicit dtype to avoid auto issues
+    USE_4BIT: bool = False  # Disable 4-bit quantization to avoid compatibility issues
+    LOW_CPU_MEM_USAGE: bool = True  # Reduce memory usage during loading
 
     #Performance configuration
     # QUANTIZE_MODEL: bool = True  # Commented out for GPT model
