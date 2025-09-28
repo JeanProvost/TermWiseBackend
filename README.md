@@ -29,6 +29,28 @@ graph LR
 - **Structured Output**: Returns well-formatted JSON with document type, summary, key terms, and section breakdowns
 - **Fast API**: RESTful endpoints for document summarization and classification
 
+## Configuration
+
+All runtime settings are centrally managed through [`app/config.py`](app/config.py) using Pydantic Settings.  The app automatically loads `.env` plus an environment-specific overlay if present (for example `.env.local`, `.env.staging`, `.env.production`).
+
+1. Duplicate `.env.example` to `.env` for local development and fill in the optional values.
+2. Create additional files such as `.env.production` with production-ready overrides.
+3. Set the `APP_ENV` environment variable to choose which overlay is loaded (defaults to `local`).
+
+Key environment variables:
+
+| Variable | Description |
+| --- | --- |
+| `APP_ENV` | Environment label (`local`, `staging`, `production`). Drives which `.env.<env>` file is included. |
+| `MODEL_PROVIDER` | `huggingface` (default local Transformers) or `bedrock` (AWS managed inference). |
+| `MODEL_NAME` | Hugging Face model identifier when using the local provider. |
+| `HF_TOKEN` | Optional Hugging Face token for private models. |
+| `BEDROCK_MODEL_ID` | AWS Bedrock model identifier (e.g. `anthropic.claude-3-sonnet-20240229`). Required when `MODEL_PROVIDER=bedrock`. |
+| `BEDROCK_REGION` | AWS region to call Bedrock in; falls back to `AWS_REGION` if omitted. |
+| `BEDROCK_PROFILE` / `BEDROCK_ASSUME_ROLE_ARN` | Optional profile or role to assume when building the Bedrock client. |
+
+When `MODEL_PROVIDER=bedrock`, the backend skips local model loading and routes generation through AWS Bedrock using the provided credentials.  For local development keep `MODEL_PROVIDER=huggingface` so the model is downloaded once and cached on disk.
+
 ## Getting Started
 
 Follow these steps to set up and run the project locally for development and testing.
@@ -140,6 +162,41 @@ The backend is optimized for performance:
 - **Lazy Loading**: Model loads only on first request to minimize startup time
 
 ## Deployment
+
+### Local GPU or Hugging Face Inference
+
+The defaults assume a local GPU and Hugging Face hosted weights.  Use `.env.local` for these settings:
+
+```dotenv
+APP_ENV=local
+MODEL_PROVIDER=huggingface
+MODEL_NAME=Qwen/Qwen2.5-7B-Instruct
+USE_GPU=true
+TORCH_DTYPE=bfloat16
+```
+
+### AWS Bedrock
+
+To deploy on AWS with Bedrock managed inference:
+
+1. Ensure the instance or container has IAM permissions for Bedrock (via role or static keys).
+2. Create `.env.production` with Bedrock settings, for example:
+
+  ```dotenv
+  APP_ENV=production
+  MODEL_PROVIDER=bedrock
+  AWS_REGION=us-east-1
+  BEDROCK_REGION=us-east-1
+  BEDROCK_MODEL_ID=anthropic.claude-3-sonnet-20240229
+  BEDROCK_PROFILE=termwise-prod
+  ```
+
+3. Set `APP_ENV=production` in the process environment before launching the service.
+4. Start the FastAPI app behind `uvicorn`, ECS/EKS, or another process manager.  No large model downloads occur because inference is delegated to Bedrock.
+
+The repository already includes dependencies (`boto3`) needed for Bedrock.  The summarizer automatically builds a Bedrock Runtime client using the configured region, optional profile, and role assumption.  Adjust the environment to supply AWS credentials through IAM roles, environment variables, or AWS profiles following standard AWS security practices.
+
+### Serverless (Lambda)
 
 For production deployment on AWS Lambda, the application includes:
 - AWS Lambda handler via Mangum
